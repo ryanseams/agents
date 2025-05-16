@@ -44,10 +44,10 @@ from .log import logger
 
 ENGLISH = "en"
 DEFAULT_ENCODING = "pcm_s16le"
-DEFAULT_WORD_FINALIZATION_MAX_WAIT_TIME = 80
+DEFAULT_WORD_FINALIZATION_MAX_WAIT_TIME = 2400
 DEFAULT_END_OF_TURN_CONFIDENCE_THRESHOLD = 0.5
-DEFAULT_MIN_END_OF_TURN_SILENCE_WHEN_CONFIDENT = 200
-DEFAULT_MAX_TURN_SILENCE = 700
+DEFAULT_MIN_END_OF_TURN_SILENCE_WHEN_CONFIDENT = 400
+DEFAULT_MAX_TURN_SILENCE = 2400
 
 
 # Define bytes per frame for different encoding types
@@ -353,7 +353,7 @@ class SpeechStream(stt.SpeechStream):
             "Content-Type": "application/json",
         }
 
-        ws_url = "wss://streaming.sandbox003.assemblyai-labs.com/v3/ws"
+        ws_url = "wss://streaming.assemblyai.com/v3/ws"
         filtered_config = {k: v for k, v in live_config.items() if v is not None}
         url = f"{ws_url}?{urlencode(filtered_config).lower()}"
         ws = await self._session.ws_connect(url, headers=headers)
