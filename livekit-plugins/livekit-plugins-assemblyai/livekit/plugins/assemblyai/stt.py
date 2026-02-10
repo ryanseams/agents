@@ -48,15 +48,16 @@ class STTOptions:
     sample_rate: int
     buffer_size_seconds: float
     encoding: Literal["pcm_s16le", "pcm_mulaw"] = "pcm_s16le"
-    speech_model: Literal["universal-streaming-english", "universal-streaming-multilingual"] = (
-        "universal-streaming-english"
-    )
+    speech_model: Literal[
+        "universal-streaming-english", "universal-streaming-multilingual", "u3-pro"
+    ] = "universal-streaming-english"
     language_detection: NotGivenOr[bool] = NOT_GIVEN
     end_of_turn_confidence_threshold: NotGivenOr[float] = NOT_GIVEN
     min_end_of_turn_silence_when_confident: NotGivenOr[int] = NOT_GIVEN
     max_turn_silence: NotGivenOr[int] = NOT_GIVEN
     format_turns: NotGivenOr[bool] = NOT_GIVEN
     keyterms_prompt: NotGivenOr[list[str]] = NOT_GIVEN
+    prompt: NotGivenOr[str] = NOT_GIVEN
 
 
 class STT(stt.STT):
@@ -67,14 +68,17 @@ class STT(stt.STT):
         sample_rate: int = 16000,
         encoding: Literal["pcm_s16le", "pcm_mulaw"] = "pcm_s16le",
         model: Literal[
-            "universal-streaming-english", "universal-streaming-multilingual"
+            "universal-streaming-english", "universal-streaming-multilingual", "u3-pro"
         ] = "universal-streaming-english",
         language_detection: NotGivenOr[bool] = NOT_GIVEN,
         end_of_turn_confidence_threshold: NotGivenOr[float] = NOT_GIVEN,
         min_end_of_turn_silence_when_confident: NotGivenOr[int] = NOT_GIVEN,
         max_turn_silence: NotGivenOr[int] = NOT_GIVEN,
-        format_turns: NotGivenOr[bool] = NOT_GIVEN,
+        format_turns: NotGivenOr[bool] = True,
         keyterms_prompt: NotGivenOr[list[str]] = NOT_GIVEN,
+        prompt: NotGivenOr[
+            str
+        ] = "You are an AI voice agent answering calls with humans for a defined task. Be sure to hear all words the user speaks and transcribe verbatim, including all disfluencies. Punctuation rules: 1) Always include punctuation in output. 2) Use period/question mark ONLY for complete sentences. 3) Use comma for mid-sentence pauses. 4) Use no punctuation for incomplete trailing speech.",
         http_session: aiohttp.ClientSession | None = None,
         buffer_size_seconds: float = 0.05,
         base_url: str = "wss://streaming.assemblyai.com",
@@ -114,6 +118,7 @@ class STT(stt.STT):
             max_turn_silence=max_turn_silence,
             format_turns=format_turns,
             keyterms_prompt=keyterms_prompt,
+            prompt=prompt,
         )
         self._session = http_session
         self._streams = weakref.WeakSet[SpeechStream]()
@@ -166,6 +171,7 @@ class STT(stt.STT):
         end_of_turn_confidence_threshold: NotGivenOr[float] = NOT_GIVEN,
         min_end_of_turn_silence_when_confident: NotGivenOr[int] = NOT_GIVEN,
         max_turn_silence: NotGivenOr[int] = NOT_GIVEN,
+        prompt: NotGivenOr[str] = NOT_GIVEN,
     ) -> None:
         if is_given(buffer_size_seconds):
             self._opts.buffer_size_seconds = buffer_size_seconds
@@ -177,6 +183,8 @@ class STT(stt.STT):
             )
         if is_given(max_turn_silence):
             self._opts.max_turn_silence = max_turn_silence
+        if is_given(prompt):
+            self._opts.prompt = prompt
 
         for stream in self._streams:
             stream.update_options(
@@ -184,6 +192,7 @@ class STT(stt.STT):
                 end_of_turn_confidence_threshold=end_of_turn_confidence_threshold,
                 min_end_of_turn_silence_when_confident=min_end_of_turn_silence_when_confident,
                 max_turn_silence=max_turn_silence,
+                prompt=prompt,
             )
 
 
@@ -218,6 +227,7 @@ class SpeechStream(stt.SpeechStream):
         end_of_turn_confidence_threshold: NotGivenOr[float] = NOT_GIVEN,
         min_end_of_turn_silence_when_confident: NotGivenOr[int] = NOT_GIVEN,
         max_turn_silence: NotGivenOr[int] = NOT_GIVEN,
+        prompt: NotGivenOr[str] = NOT_GIVEN,
     ) -> None:
         if is_given(buffer_size_seconds):
             self._opts.buffer_size_seconds = buffer_size_seconds
@@ -229,6 +239,8 @@ class SpeechStream(stt.SpeechStream):
             )
         if is_given(max_turn_silence):
             self._opts.max_turn_silence = max_turn_silence
+        if is_given(prompt):
+            self._opts.prompt = prompt
 
         self._reconnect_event.set()
 
@@ -353,6 +365,10 @@ class SpeechStream(stt.SpeechStream):
             if "multilingual" in self._opts.speech_model
             else False,
         }
+
+        # Only include prompt parameter for u3-pro model
+        if self._opts.speech_model == "u3-pro" and is_given(self._opts.prompt):
+            live_config["prompt"] = self._opts.prompt
 
         headers = {
             "Authorization": self._api_key,
