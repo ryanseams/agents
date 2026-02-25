@@ -78,7 +78,7 @@ class STT(stt.STT):
         keyterms_prompt: NotGivenOr[list[str]] = NOT_GIVEN,
         prompt: NotGivenOr[
             str
-        ] = "You are an AI voice agent answering calls with humans for a defined task. Be sure to hear all words the user speaks and transcribe verbatim, including all disfluencies. Punctuation rules: 1) Always include punctuation in output. 2) Use period/question mark ONLY for complete sentences. 3) Use comma for mid-sentence pauses. 4) Use no punctuation for incomplete trailing speech.",
+        ] = "Transcribe this audio: AI voice agent talking to a human to complete a customer service task. Mandatory: Transcribe verbatim with all spoken filler words, hesitations, repetitions, and false starts exactly as spoken. Non-negotiable: Use complete punctuation — periods and question marks for complete sentences, commas for mid-sentence pauses, and standard capitalization throughout",
         http_session: aiohttp.ClientSession | None = None,
         buffer_size_seconds: float = 0.05,
         base_url: str = "wss://streaming.assemblyai.com",
